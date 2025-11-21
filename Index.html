@@ -1,78 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#000000" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000">
   <title>FlashMoE-128K</title>
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="/icon-192.png" />
-  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <script type="module" src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: 'Courier New', monospace; background:#000; color:#0f0; margin:0; padding:0; }
+    body { font-family: 'Courier New', monospace; background:#000; color:#0f0; margin:0; }
     .glitch { animation:glitch 3s infinite; }
-    @keyframes glitch{0%,100%{text-shadow:0 0 10px #0f0}20%{text-shadow:-4px 0 #f0f,4px 0 #0ff}}
+    @keyframes glitch{0%,100%{text-shadow:0 0 10px #0f0}20%{text-shadow:-5px 0 #f0f,5px 0 #0ff}}
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
-  <header class="text-center py-8">
-    <h1 class="text-5xl font-bold glitch">FlashMoE-128K</h1>
-    <p id="status" class="text-sm mt-4">Initializing council…</p>
+<body class="min-h-screen flex flex-col text-green-400">
+  <header class="text-center py-6 border-b-4 border-cyan-500">
+    <h1 class="text-5xl font-black glitch">FlashMoE-128K</h1>
+    <p id="status" class="text-sm mt-2">Initializing neural council…</p>
   </header>
 
-  <main id="chat" class="flex-1 overflow-y-auto px-4 pb-32 space-y-4"></main>
+  <main id="chat" class="flex-1 overflow-y-auto px-4 pb-32 space-y-6"></main>
 
-  <footer class="fixed bottom-0 left-0 right-0 bg-black border-t-4 border-cyan-500 p-4">
-    <select id="model" class="w-full mb-2 p-2 bg-black border border-pink-600 text-green-400">
-      <option value="Qwen2.5-7B-Instruct-q4f16_1-MLC">Qwen2.5-7B (fast)</option>
+  <footer class="fixed bottom-0 left-0 right-0 bg-black border-t-4 border-pink-600 p-4">
+    <select id="model" class="w-full mb-2 p-2 bg-black border border-cyan-500 text-green-400">
+      <option value="Qwen2.5-7B-Instruct-q4f16_1-MLC">Qwen2.5-7B (default)</option>
       <option value="Llama-3.1-8B-Instruct-q4f16_1-MLC">Llama-3.1-8B</option>
       <option value="DeepSeek-Coder-V2-Lite-q4f16_1-MLC">DeepSeek-Coder</option>
     </select>
-    <textarea id="input" rows="3" placeholder="Speak…" class="w-full p-3 bg-black border-2 border-pink-600 text-green-400"></textarea>
-    <button id="send" class="mt-2 w-full bg-gradient-to-r from-pink-600 to-cyan-600 text-black font-bold py-4">JACK IN</button>
+    <textarea id="input" rows="3" placeholder="Speak to the council…" class="w-full p-3 bg-black border-2 border-pink-600 text-green-400 resize-none"></textarea>
+    <button id="send" class="mt-2 w-full bg-gradient-to-r from-pink-600 to-cyan-600 text-black font-bold py-4 text-xl">JACK IN</button>
   </footer>
 
   <script type="module">
     const chat = document.getElementById('chat');
     const input = document.getElementById('input');
-    const send = document.getElementById('send');
+    const sendBtn = document.getElementById('send');
     const status = document.getElementById('status');
     const modelSelect = document.getElementById('model');
     let engine = null;
 
-    async function init() {
-      if (!('gpu' in navigator)) { status.textContent = "No WebGPU → using demo mode"; return; }
-      status.textContent = "Loading " + modelSelect.value + "…";
+    // THE FULL EIGHT CYBER-PUNKS
+    const council = [
+      { alias: "KRYPT-KID",     system: "You are KRYPT-KID, ex-MIT quantum PhD turned black-hat lattice exploiter. Cold, precise, crypto jargon." },
+      { alias: "NEON-PALADIN",  system: "You are NEON-PALADIN, disbarred Harvard lawyer who leaks megacorps. Sarcastic legalese." },
+      { alias: "GHOST-ORACLE",  system: "You are GHOST-ORACLE, ex-NSA astrophysicist legally dead since 2024. Cosmic, cryptic, zero-knowledge metaphors." },
+      { alias: "RAZOR-BISHOP",  system: "You are RAZOR-BISHOP, excommunicated Jesuit logician. Latin + brutal formal logic." },
+      { alias: "SILK-SPECTER",  system: "You are SILK-SPECTER, multilingual poet with $5M bounty from Beijing. Elegant, layered." },
+      { alias: "CHROME-SHAMAN", system: "You are CHROME-SHAMAN, tribal biohacker. DNA is magic, CRISPR puns." },
+      { alias: "VOID-COWBOY",   system: "You are VOID-COWBOY, 1337 DEF CON god. Memes, shellcode poetry." },
+      { alias: "LACE-PIRATE",   system: "You are LACE-PIRATE, pirate-radio captain at sea. Salty signal slang." }
+    ];
+
+    async function initEngine() {
+      if (!('gpu' in navigator)) { status.textContent = "No WebGPU – demo mode"; return; }
+      status.textContent = `Loading ${modelSelect.value}…`;
       engine = await WebLLM.createMLCEngine(modelSelect.value, {
-        initProgressCallback: p => status.textContent = `Downloading… ${Math.round(p.progress*100)}%`
+        initProgressCallback: p => status.textContent = `Downloading neural council… ${Math.round(p.progress*100)}%`
       });
-      status.textContent = "FlashMoE-128K ready • WebGPU active";
+      status.textContent = "FlashMoE-128K ready • 8 cyber-punks online";
     }
 
-    modelSelect.onchange = () => { engine = null; init(); };
+    modelSelect.onchange = () => { engine = null; initEngine(); };
 
-    send.onclick = async () => {
-      const msg = input.value.trim(); if (!msg) return;
-      addMsg("You", msg); input.value = "";
-      if (!engine) { addMsg("System", "WebGPU not available — demo mode"); return; }
+    function routeMessage(msg) {
+      const lower = msg.toLowerCase();
+      return council
+        .map(p => ({ p, score: p.system.toLowerCase().split(/\s+/).filter(w => lower.includes(w)).length }))
+        .sort((a,b) => b.score - a.score)
+        .slice(0, 3)
+        .map(x => x.p);
+    }
+
+    async function sendMessage() {
+      const msg = input.value.trim();
+      if (!msg) return;
+      addMessage("You", msg);
+      input.value = "";
+
+      if (!engine) { addMessage("System", "WebGPU not available – try Chrome/Edge on desktop"); return; }
+
+      const activePunks = routeMessage(msg);
+      const systemPrompt = activePunks.map(p => p.system).join("\n");
+      const speaker = activePunks.map(p => p.alias).join(" + ");
+
       const reply = await engine.chat.completions.create({
-        messages: [{role:"user", content: msg}],
-        temperature: 0.8, max_tokens: 512
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: msg }
+        ],
+        temperature: 0.9,
+        max_tokens: 600
       });
-      addMsg("MoE", reply.choices[0].message.content);
-    };
 
-    function addMsg(sender, text) {
-      const div = document.createElement('div');
-      div.innerHTML = `<span class="text-pink-500 font-bold">${sender}:</span> <span class="text-green-400">${text.replace(/\n/g,'<br>')}</span>`;
-      chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
+      addMessage(speaker, reply.choices[0].message.content);
     }
 
-    input.addEventListener('keypress', e => e.key==='Enter' && !e.shiftKey && (e.preventDefault(), send.click()));
-    init();
+    function addMessage(sender, text) {
+      const div = document.createElement('div');
+      div.innerHTML = `<span class="text-pink-500 font-bold">${sender}:</span><br><span class="text-green-400 leading-relaxed">${text.replace(/\n/g, '<br>')}</span>`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    sendBtn.onclick = sendMessage;
+    input.addEventListener('keypress', e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage()));
+    initEngine();
   </script>
 </body>
 </html>
