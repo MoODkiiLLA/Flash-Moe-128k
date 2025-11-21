@@ -2,166 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#0c4a6e" />
-  <title>SRAE-Δ v5 • Cyber-Punk Council</title>
+  <meta name="theme-color" content="#000000" />
+  <title>FlashMoE-128K</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.46"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #0f0; }
-    .glitch { animation: glitch 2s infinite; }
-    @keyframes glitch { 0%,100%{text-shadow: 0 0 5px #0f0;} 14%{text-shadow: -3px 0 #f0f, 3px 0 #0ff;} }
-    .neon { text-shadow: 0 0 10px #0ff, 0 0 20px #0ff; }
+    body { font-family: 'Courier New', monospace; background:#000; color:#0f0; margin:0; padding:0; }
+    .glitch { animation:glitch 3s infinite; }
+    @keyframes glitch{0%,100%{text-shadow:0 0 10px #0f0}20%{text-shadow:-4px 0 #f0f,4px 0 #0ff}}
   </style>
 </head>
-<body class="min-h-screen pb-32 text-green-400">
-  <div class="max-w-full mx-auto px-4 pt-8">
-    <h1 class="text-5xl font-black text-center glitch mb-2">SRAE-Δ v5</h1>
-    <p class="text-center neon text-lg mb-8">128K Cyber-Punk Council • No APIs • Offline • Pure JS</p>
+<body class="min-h-screen flex flex-col">
+  <header class="text-center py-8">
+    <h1 class="text-5xl font-bold glitch">FlashMoE-128K</h1>
+    <p id="status" class="text-sm mt-4">Initializing council…</p>
+  </header>
 
-    <textarea id="input" rows="12" placeholder="Drop your manifesto, proof, or code, meatbag…" class="w-full p-5 bg-black border-2 border-cyan-500 rounded-none focus:border-pink-500 focus:outline-none text-green-400 font-mono"></textarea>
+  <main id="chat" class="flex-1 overflow-y-auto px-4 pb-32 space-y-4"></main>
 
-    <div class="mt-3 text-right text-sm text-pink-400">
-      ≈ <span id="tokens">0</span> tokens
-    </div>
+  <footer class="fixed bottom-0 left-0 right-0 bg-black border-t-4 border-cyan-500 p-4">
+    <select id="model" class="w-full mb-2 p-2 bg-black border border-pink-600 text-green-400">
+      <option value="Qwen2.5-7B-Instruct-q4f16_1-MLC">Qwen2.5-7B (fast)</option>
+      <option value="Llama-3.1-8B-Instruct-q4f16_1-MLC">Llama-3.1-8B</option>
+      <option value="DeepSeek-Coder-V2-Lite-q4f16_1-MLC">DeepSeek-Coder</option>
+    </select>
+    <textarea id="input" rows="3" placeholder="Speak…" class="w-full p-3 bg-black border-2 border-pink-600 text-green-400"></textarea>
+    <button id="send" class="mt-2 w-full bg-gradient-to-r from-pink-600 to-cyan-600 text-black font-bold py-4">JACK IN</button>
+  </footer>
 
-    <button id="grade" class="mt-6 w-full bg-gradient-to-r from-pink-600 to-cyan-600 text-black font-bold text-2xl py-6 rounded-none shadow-2xl hover:shadow-cyan-500/50 transition">
-      JACK IN • 8 CYBER-PUNKS AWAKEN
-    </button>
-
-    <div id="result" class="mt-10 hidden"></div>
-  </div>
-
-  <script>
+  <script type="module">
+    const chat = document.getElementById('chat');
     const input = document.getElementById('input');
-    const btn = document.getElementById('grade');
-    const result = document.getElementById('result');
-    const tokensEl = document.getElementById('tokens');
+    const send = document.getElementById('send');
+    const status = document.getElementById('status');
+    const modelSelect = document.getElementById('model');
+    let engine = null;
 
-    // Cyber-punk Council of 8 — each with education + criminal rap sheet
-    const council = [
-      {
-        alias: "KRYPT-KID",
-        real: "Dr. Ksenia Volkov",
-        edu: "PhD Quantum Cryptography, MIT (expelled for running a dark-pool quantum rig in the lab basement)",
-        rap: "Convicted 2023: sold zero-day exploits to North Korean miners, did 18 months in low-sec",
-        specialty: "PQC & lattice attacks",
-        score: t => t.filter(w => /dilithium|kyber|lattice|NTRU/i.test(w)).length * 8
-      },
-      {
-        alias: "NEON-PALADIN",
-        real: "Prof. Diego “D13G0” Morales",
-        edu: "Tenured Harvard Law → disbarred after leaking 400 TB of Big-Law discovery data to WikiLeaks",
-        rap: "International warrant for “legal terrorism”",
-        specialty: "Neurolaw & adversarial evidence",
-        score: t => t.filter(w => /P300|insula|amygdala|miranda|mens rea/i.test(w)).length * 12
-      },
-      {
-        alias: "GHOST-ORACLE",
-        real: "Aisha Al-Jazari",
-        edu: "Caltech Astrophysics → recruited by NSA at 19, went rogue after Stuxnet II leak",
-        rap: "Ghost protocol: legally dead since 2024",
-        specialty: "Zero-knowledge proofs & orbital mechanics",
-        score: t => t.filter(w => /zk|bulletproof|halo|orbit|kepler/i.test(w)).length * 10
-      },
-      {
-        alias: "RAZOR-BISHOP",
-        real: "Bishop “Rzr” O’Malley",
-        edu: "Excommunicated Jesuit priest with a Th.D in Medieval Logic, runs Tor exit nodes from abandoned churches",
-        rap: "Vatican black-list + 47 counts of “digital heresy”",
-        specialty: "Formal logic & theological exploits",
-        score: t => t.filter(w => /modus|contradiction|godel|trinity|ex falso/i.test(w)).length * 11
-      },
-      {
-        alias: "SILK-SPECTER",
-        real: "Dr. Mei-Xing Zhao",
-        edu: "Stanford CompLit → built the first LLM that passed the Turing Test in Mandarin, then open-sourced the weights on the darknet",
-        rap: "Chinese most-wanted list, $5M bounty",
-        specialty: "Multilingual steganography & narrative attacks",
-        score: t => (new Set(t.filter(w => w.length > 8))).size / t.length * 100
-      },
-      {
-        alias: "CHROME-SHAMAN",
-        real: "Prof. Raven LaCroix",
-        edu: "Tribal college ethno-botany + black-hat biohacking collective “Church of the Double Helix”",
-        rap: "FBI bio-threat watchlist after releasing open-source CRISPR malaria resistance",
-        specialty: "Bio-punk & wetware syntax",
-        score: t => t.filter(w => /cas9|guide|plasmid|off-target|synth/i.test(w)).length * 9
-      },
-      {
-        alias: "VOID-COWBOY",
-        real: "Jax “Null” McAllister",
-        edu: "Dropped out of high-school, legendary CTF god (DEFCON black badge ×7)",
-        rap: "Interpol Red Notice for “digital cattle rustling” (stole 12M BTC in 2022, gave it all to tornado victims)",
-        specialty: "Exploit poetry & raw assembly",
-        score: t => t.filter(w => /jmp|ret|nop|shellcode|rop/i.test(w)).length * 15
-      },
-      {
-        alias: "LACE-PIRATE",
-        real: "Capt. Amara Singh",
-        edu: "Merchant Marine Academy → pirate radio fleet broadcasting uncensorable mesh networks from international waters",
-        rap: "Wanted by five navies for “spectrum anarchy”",
-        specialty: "Signal theory & radio steganography",
-        score: t => t.filter(w => /qam|ofdm|spread|jammer|beacon/i.test(w)).length * 10
-      }
-    ];
-
-    function tokenize(text) {
-      return text.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 128000);
+    async function init() {
+      if (!('gpu' in navigator)) { status.textContent = "No WebGPU → using demo mode"; return; }
+      status.textContent = "Loading " + modelSelect.value + "…";
+      engine = await WebLLM.createMLCEngine(modelSelect.value, {
+        initProgressCallback: p => status.textContent = `Downloading… ${Math.round(p.progress*100)}%`
+      });
+      status.textContent = "FlashMoE-128K ready • WebGPU active";
     }
 
-    function route(tokens) {
-      return council
-        .map(expert => ({ expert, activation: expert.score(tokens) }))
-        .sort((a, b) => b.activation - a.activation)
-        .slice(0, 4); // top-4 sparsity, cyber-punk style
-    }
+    modelSelect.onchange = () => { engine = null; init(); };
 
-    btn.onclick = () => {
-      const text = input.value.trim();
-      if (!text) return;
-
-      btn.disabled = true;
-      btn.textContent = "JACKING IN…";
-
-      const tokens = tokenize(text);
-      tokensEl.textContent = tokens.length.toLocaleString();
-
-      result.innerHTML = `<div class="text-center p-8"><pre class="inline-block animate-pulse">█▒▒▒▒▒▒ 33%</pre></div>`;
-      result.classList.remove('hidden');
-
-      setTimeout(() => {
-        const activated = route(tokens);
-        const total = activated.reduce((sum, {expert, activation}) => 
-          sum + activation * Math.random()*0.4 + 60, 0) / activated.length;
-
-        const color = total >= 90 ? "text-cyan-400" : total >= 70 ? "text-pink-500" : "text-red-600";
-
-        result.innerHTML = `
-          <div class="text-center text-9xl font-black ${color} glitch mb-4">${Math.round(total)}</div>
-          <div class="text-5xl mb-8 px-8 py-4 bg-black border-4 border-cyan-500 inline-block">${total >= 90 ? "GOD-TIER" : total >= 75 ? "ELITE" : total >= 60 ? "STREET" : "MEAT"}</div>
-          
-          <div class="bg-black border-4 border-pink-600 p-6 mt-8 font-mono text-sm">
-            <h3 class="text-cyan-400 text-xl mb-4">>> ACTIVE OPERATIVES</h3>
-            ${activated.map(({expert, activation}) => `
-              <div class="mb-4 border-l-4 border-green-500 pl-4">
-                <span class="text-pink-500 font-bold">${expert.alias}</span> 
-                <span class="text-gray-500">// ${expert.edu.split(' ')[0]}… → ${expert.rap.split(' ')[0]}…</span><br>
-                <span class="text-green-400">Activation: ${activation.toFixed(1)}</span>
-              </div>`).join('')}
-          </div>
-          
-          <div class="mt-8 text-xs text-gray-500 animate-pulse">
-            SRAE-Δ v5 • 8 Cyber-Punks • 128K Context • No Gods, No Masters, Only Code
-          </div>`;
-        
-        btn.disabled = false;
-        btn.textContent = "JACK IN • 8 CYBER-PUNKS AWAKEN";
-        result.scrollIntoView({ behavior: 'smooth' });
-      }, 800);
+    send.onclick = async () => {
+      const msg = input.value.trim(); if (!msg) return;
+      addMsg("You", msg); input.value = "";
+      if (!engine) { addMsg("System", "WebGPU not available — demo mode"); return; }
+      const reply = await engine.chat.completions.create({
+        messages: [{role:"user", content: msg}],
+        temperature: 0.8, max_tokens: 512
+      });
+      addMsg("MoE", reply.choices[0].message.content);
     };
 
-    input.focus();
+    function addMsg(sender, text) {
+      const div = document.createElement('div');
+      div.innerHTML = `<span class="text-pink-500 font-bold">${sender}:</span> <span class="text-green-400">${text.replace(/\n/g,'<br>')}</span>`;
+      chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
+    }
+
+    input.addEventListener('keypress', e => e.key==='Enter' && !e.shiftKey && (e.preventDefault(), send.click()));
+    init();
   </script>
 </body>
 </html>
