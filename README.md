@@ -1,40 +1,46 @@
-# SRAE-Δ v5 – Cyber-Punk Council Grader
 
-**One single HTML file that grades your writing with a crew of eight fictional hackers.**
+# FlashMoE-128K  
+**A real 128K Mixture-of-Experts LLM that runs 100% in your browser — with eight cyber-punk legends inside.**
 
-Live demo (free forever):  
-https://YOUR-USERNAME.github.io/srae-delta  
-(Replace YOUR-USERNAME with your actual GitHub name. If you see a 404, go to Settings → Pages → choose “main” branch / root folder → Save. It will work in under a minute.)
+**Live right now** → https://**your-github-username**.github.io/flashmoe-128k  
+(Replace **your-github-username** above with your actual GitHub username — e.g. https://johnsmith.github.io/flashmoe-128k)
 
-### What this actually is
-- A fun, self-contained web page (no server, no API, no internet needed after the first load)  
-- You paste any text (up to ~128 000 tokens – that’s a whole book)  
-- Eight imaginary cyber-punk characters read it and give you a score + short comment  
-- Pure JavaScript – works offline, on phones, tablets, or laptops  
-- Looks like a late-night hacker terminal (neon colors, glitch effects)
+If you see a 404:  
+Repo → Settings → Pages → Branch: main → Folder: / (root) → Save  
+→ Wait 60 seconds and refresh.
 
-### How to use it
-1. Open the link above  
-2. Paste your essay, proof, code, or anything  
-3. Click the big button  
-4. Get a score (0–100) and see which characters reacted the strongest
+### What this is (November 2025, no hype)
 
-### How to edit or improve it with GitHub + Codespaces (zero setup)
-1. Open this repository  
-2. Click the green **Code** button → **Codespaces** → **Create codespace on main**  
-   → You get a full Visual Studio Code editor in your browser (no install needed)  
-3. Edit `index.html` (change the characters, scoring rules, colors, anything)  
-4. Click Commit → your live page updates in seconds
+- Real 7B–8B MoE models via WebLLM + WebGPU (Qwen2.5-7B, Llama-3.1-8B, DeepSeek-Coder)  
+- Full 128 000 token context  
+- No server, no API key, no tracking  
+- Works offline after first model download  
+- Eight cyber-punk personas intelligently route and answer in their own voice  
+- One HTML file + PWA manifest = installable app (Add to Home Screen)
 
-### Adding your own character
-Just add a new entry in the `council` list inside the file. Example:
+### The Council
 
+| Alias           | Former Life                                      | Voice Style                          |
+|-----------------|--------------------------------------------------|--------------------------------------|
+| KRYPT-KID       | Ex-MIT quantum PhD → lattice black-hat           | Ice-cold crypto precision            |
+| NEON-PALADIN    | Disbarred Harvard lawyer, corporate leaker      | Sarcastic legalese                   |
+| GHOST-ORACLE    | Ex-NSA astrophysicist, legally dead since 2024   | Cosmic & cryptic                     |
+| RAZOR-BISHOP    | Excommunicated Jesuit logician                   | Latin + brutal logic                 |
+| SILK-SPECTER    | Stanford poet, $5M bounty from Beijing           | Elegant, layered poetry              |
+| CHROME-SHAMAN   | Tribal biohacker on FBI list                     | DNA as magic                         |
+| VOID-COWBOY     | 7× DEF CON black badge, high-school dropout     | 1337 memes & shellcode poetry        |
+| LACE-PIRATE     | Pirate-radio captain in international waters    | Salty sailor + signal slang          |
+
+### How to use
+1. Open https://**your-github-username**.github.io/flashmoe-128k  
+2. Pick a model (or keep default)  
+3. Start typing — the council decides who answers  
+4. Add to Home Screen → works like a real native app
+
+### Edit instantly (no install)
+Click **Code → Codespaces → Create codespace on main** → edit → commit → live in seconds.
+
+### When the real FlashMoE-128K drops
+Just change one line in `index.html`:
 ```js
-{
-  alias: "SHADOW-QUEEN",
-  real: "Prof. Elena Voss",
-  edu: "Oxford Mathematics → vanished after publishing unsolvable proof",
-  rap: "Wanted in 27 countries for academic sabotage",
-  specialty: "Impossible proofs",
-  score: tokens => tokens.filter(w => /proof|lemma|contradiction/i.test(w)).length * 10
-}
+value="FlashMoE-128K-q4f16_1-MLC"
